@@ -1,0 +1,728 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>SVGA 编辑工具</title>
+        <meta content="telephone=no" name="format-detection" />
+        <meta content="yes" name="apple-mobile-web-app-capable" />
+        <meta content="black" name="apple-mobile-web-app-status-bar-style" />
+        <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+        <script src="./assets/jquery-1.12.3.min.js"></script>
+        <script type="text/javascript" src="./assets/svga.min.js"></script>
+        <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            html,
+            body {
+                width: 100%;
+                min-height: 100%;
+                background: #f3f5f9;
+                color: #333;
+                font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+            }
+
+            #app {
+                width: 1200px;
+                margin: 30px auto;
+                padding: 24px;
+                border-radius: 10px;
+                background: #fff;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            }
+
+            .block {
+                margin-bottom: 18px;
+            }
+
+            .title {
+                margin-bottom: 10px;
+                font-size: 16px;
+                font-weight: 600;
+            }
+
+            .row {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+
+            .input {
+                height: 36px;
+                line-height: 36px;
+                padding: 0 10px;
+                border: 1px solid #d9dde7;
+                border-radius: 6px;
+                outline: none;
+                font-size: 14px;
+            }
+
+            .input.url {
+                width: 600px;
+            }
+
+            .input.slot {
+                width: 240px;
+            }
+
+            .input.small {
+                width: 180px;
+            }
+
+            .textarea {
+                width: 100%;
+                min-height: 140px;
+                padding: 10px;
+                border: 1px solid #d9dde7;
+                border-radius: 6px;
+                outline: none;
+                font-size: 14px;
+                line-height: 1.5;
+                resize: vertical;
+                font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+            }
+
+            .btn {
+                height: 36px;
+                line-height: 36px;
+                padding: 0 14px;
+                border: none;
+                border-radius: 6px;
+                background: #398eff;
+                color: #fff;
+                font-size: 14px;
+                cursor: pointer;
+            }
+
+            .btn.gray {
+                background: #9097a7;
+            }
+
+            .preview {
+                width: 100%;
+                height: 560px;
+                border-radius: 8px;
+                border: 1px dashed #d9dde7;
+                background: #0f1117;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .preview canvas {
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+
+            .desc {
+                margin-top: 8px;
+                font-size: 13px;
+                color: #666;
+            }
+
+            #tips {
+                position: fixed;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 99999;
+                min-width: 240px;
+                padding: 10px 14px;
+                border-radius: 6px;
+                background: rgba(0, 0, 0, 0.75);
+                color: #fff;
+                text-align: center;
+                display: none;
+            }
+
+            #history {
+                width: 100%;
+                min-height: 84px;
+                max-height: 180px;
+                overflow: auto;
+                padding: 10px;
+                border: 1px solid #d9dde7;
+                border-radius: 6px;
+                background: #f9fbff;
+                font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+                font-size: 12px;
+                line-height: 1.5;
+                white-space: pre-wrap;
+                word-break: break-all;
+            }
+
+            .hidden {
+                display: none;
+            }
+
+            #slotCandidates {
+                width: 100%;
+                min-height: 120px;
+                max-height: 260px;
+                overflow: auto;
+                padding: 10px;
+                border: 1px solid #d9dde7;
+                border-radius: 6px;
+                background: #f9fbff;
+                font-size: 13px;
+                line-height: 1.6;
+                white-space: pre-wrap;
+                word-break: break-all;
+            }
+
+            #imageAssets {
+                width: 100%;
+                min-height: 120px;
+                max-height: 260px;
+                overflow: auto;
+                padding: 10px;
+                border: 1px solid #d9dde7;
+                border-radius: 6px;
+                background: #f9fbff;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            #imageAssets .image-item {
+                width: 180px;
+                border-radius: 6px;
+                border: 1px solid #e2e6f0;
+                background: #fff;
+                padding: 6px;
+                cursor: pointer;
+                transition: box-shadow 0.16s ease, transform 0.16s ease, border-color 0.16s ease;
+            }
+
+            #imageAssets .image-item:hover {
+                border-color: #398eff;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+                transform: translateY(-1px);
+            }
+
+            #imageAssets .image-key {
+                font-size: 12px;
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 4px;
+                word-break: break-all;
+            }
+
+            #imageAssets .image-thumb {
+                width: 100%;
+                height: 90px;
+                border-radius: 4px;
+                background: #f3f5f9;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+            }
+
+            #imageAssets .image-thumb img {
+                max-width: 100%;
+                max-height: 100%;
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="app">
+            <div class="block">
+                <div class="title">1. 载入 SVGA</div>
+                <div class="row">
+                    <input id="svgaUrl" class="input url" type="text" placeholder="输入 SVGA 地址，例如：https://xxx/xx.svga" />
+                    <button id="loadByUrl" class="btn">URL 预览</button>
+                </div>
+                <div class="row">
+                    <input id="svgaFile" type="file" accept=".svga" />
+                    <button id="loadByFile" class="btn">本地文件预览</button>
+                    <span class="desc">支持 URL 或本地文件二选一加载</span>
+                </div>
+            </div>
+
+            <div class="block">
+                <div class="title">2. 配置插槽并实时预览（文本 / 图片）</div>
+                <div class="row">
+                    <select id="editType" class="input small">
+                        <option value="text">文本 setText</option>
+                        <option value="image">图片 setImage</option>
+                    </select>
+                    <input id="slotName" class="input slot" type="text" placeholder="插槽名，例如 seat_number" />
+                    <button id="saveSlotConfig" class="btn">保存并应用</button>
+                    <button id="inspectSlots" class="btn gray">查询插槽</button>
+                    <button id="resetSlotConfig" class="btn gray">清空配置</button>
+                </div>
+                <div id="textEditorArea">
+                    <textarea id="slotConfig" class="textarea" placeholder='输入 JSON 对象，例如：
+{
+  "text": "8",
+  "size": "26px",
+  "color": "#ffffff",
+  "family": "Microsoft YaHei"
+}'></textarea>
+                </div>
+                <div id="imageEditorArea" class="hidden">
+                    <div class="row">
+                        <input id="imageUrl" class="input url" type="text" placeholder="输入图片地址（http/https）" />
+                    </div>
+                    <div class="row">
+                        <input id="imageFile" type="file" accept="image/*" />
+                        <span class="desc">可直接上传本地图片，点击“保存并应用”后会执行 setImage。</span>
+                    </div>
+                </div>
+                <div id="editorDesc" class="desc">点击“保存并应用”后会重新渲染并立即看到动效效果。</div>
+            </div>
+
+            <div class="block">
+                <div class="title">3. 当前已应用配置</div>
+                <div id="history">{}</div>
+            </div>
+
+            <div class="block">
+                <div class="title">4. SVGA 分解（videoItem.images 预览）</div>
+                <div class="row">
+                    <button id="decomposeSvga" class="btn gray">SVGA 分解</button>
+                    <span class="desc">从当前 SVGA 中提取内嵌图片资源，点击缩略图可快速选为图片插槽。</span>
+                </div>
+                <div id="imageAssets">请先加载 SVGA，然后点击上方的 “SVGA 分解” 按钮，图片资源会在这里以缩略图形式展示。</div>
+            </div>
+
+            <div class="block">
+                <div class="title">5. 插槽探测结果（候选 key，统一作为插槽名）</div>
+                <div id="slotCandidates">请先加载 SVGA，然后点击“查询插槽”。所有下方列出的 key 都可以直接作为插槽名使用（底层都是一张图，可 setText 也可 setImage）。</div>
+            </div>
+
+            <div class="block">
+                <div class="title">6. 预览</div>
+                <div id="svgaPreview" class="preview"></div>
+            </div>
+        </div>
+
+        <div id="tips"></div>
+
+        <script type="text/javascript">
+            (function ($) {
+                var state = {
+                    player: null,
+                    parser: null,
+                    currentVideoItem: null,
+                    currentSource: "",
+                    currentSourceType: "",
+                    objectUrl: "",
+                    slotConfigMap: {},
+                    imageObjectUrls: [],
+                };
+
+                function showTips(text) {
+                    var $tips = $("#tips");
+                    $tips.stop(true, true).text(text).fadeIn(160).delay(1100).fadeOut(220);
+                }
+
+                function ensurePlayer() {
+                    if (state.player) {
+                        try {
+                            state.player.clear();
+                        } catch (e) {}
+                    }
+                    $("#svgaPreview").empty();
+                    state.player = new SVGA.Player("#svgaPreview");
+                    state.parser = new SVGA.Parser("#svgaPreview");
+                    state.player.loops = 0;
+                }
+
+                function applyAllSlotConfigs(videoItem) {
+                    var hasConfig = false;
+                    $.each(state.slotConfigMap, function () {
+                        hasConfig = true;
+                        return false;
+                    });
+                    if (!hasConfig) {
+                        return;
+                    }
+
+                    $.each(state.slotConfigMap, function (slotName, slotItem) {
+                        if (!slotItem || typeof slotItem !== "object") {
+                            return;
+                        }
+                        if (slotItem.type === "image") {
+                            if (!slotItem.source) {
+                                throw new Error("图片插槽缺少 source");
+                            }
+                            if (state.player && typeof state.player.setImage === "function") {
+                                state.player.setImage(slotItem.source, slotName);
+                            } else if (videoItem && videoItem.dynamicEntity && typeof videoItem.dynamicEntity.setImage === "function") {
+                                videoItem.dynamicEntity.setImage(slotItem.source, slotName);
+                            } else {
+                                throw new Error("当前 SVGA 库版本不支持图片插槽设置");
+                            }
+                            return;
+                        }
+
+                        if (state.player && typeof state.player.setText === "function") {
+                            state.player.setText(slotItem.config, slotName);
+                        } else if (videoItem && videoItem.dynamicEntity && typeof videoItem.dynamicEntity.setText === "function") {
+                            videoItem.dynamicEntity.setText(slotItem.config, slotName);
+                        } else {
+                            throw new Error("当前 SVGA 库版本不支持文本插槽设置");
+                        }
+                    });
+                }
+
+                function renderSvgaFromSource(source) {
+                    if (!source) {
+                        showTips("请先输入 URL 或选择本地文件");
+                        return;
+                    }
+                    ensurePlayer();
+                    state.parser.load(
+                        source,
+                        function (videoItem) {
+                            console.log("videoItem--");
+                            console.log(videoItem);
+                            state.currentVideoItem = videoItem;
+                            state.player.setVideoItem(videoItem);
+                            try {
+                                renderImageAssets(videoItem);
+                                applyAllSlotConfigs(videoItem);
+                                console.log("state.player--");
+                                console.log(state.player);
+                                state.player.startAnimation();
+                                showTips("SVGA 预览成功");
+                            } catch (err) {
+                                showTips("插槽应用失败：" + (err && err.message ? err.message : "未知错误"));
+                            }
+                        },
+                        function () {
+                            showTips("SVGA 加载失败，请检查地址或文件是否正确");
+                        }
+                    );
+                }
+
+                function collectSlotCandidates(videoItem) {
+                    var textSlots = {};
+                    var spriteSlots = {};
+                    var imageResourceSlots = {};
+
+                    if (!videoItem) {
+                        return { textSlots: [], spriteSlots: [], imageResourceSlots: [] };
+                    }
+
+                    var dynamicEntity = videoItem.dynamicEntity;
+                    if (dynamicEntity) {
+                        var textLikeKeys = ["_dynamicText", "_dynamicTexts", "dynamicText", "dynamicTexts", "texts", "textMap", "_textMap"];
+                        $.each(textLikeKeys, function (_, key) {
+                            var val = dynamicEntity[key];
+                            if (val && typeof val === "object") {
+                                $.each(val, function (name) {
+                                    if (typeof name === "string" && name) {
+                                        textSlots[name] = true;
+                                    }
+                                });
+                            }
+                        });
+                    }
+
+                    if ($.isArray(videoItem.sprites)) {
+                        $.each(videoItem.sprites, function (_, sprite) {
+                            if (!sprite) {
+                                return;
+                            }
+                            var keys = [sprite.imageKey, sprite.spriteName, sprite.matteKey];
+                            $.each(keys, function (_, k) {
+                                if (typeof k === "string" && k) {
+                                    spriteSlots[k] = true;
+                                }
+                            });
+                        });
+                    }
+
+                    if (videoItem.images && typeof videoItem.images === "object") {
+                        $.each(videoItem.images, function (name) {
+                            if (typeof name === "string" && name) {
+                                imageResourceSlots[name] = true;
+                            }
+                        });
+                    }
+
+                    return {
+                        textSlots: Object.keys(textSlots).sort(),
+                        spriteSlots: Object.keys(spriteSlots).sort(),
+                        imageResourceSlots: Object.keys(imageResourceSlots).sort(),
+                    };
+                }
+
+                function renderImageAssets(videoItem) {
+                    var $wrap = $("#imageAssets");
+                    if (!videoItem || !videoItem.images || typeof videoItem.images !== "object") {
+                        $wrap.text("未探测到任何图片资源（videoItem.images 为空），可能是 SVGA 版本较老或无内嵌图片。");
+                        return;
+                    }
+
+                    var keys = Object.keys(videoItem.images);
+                    if (!keys.length) {
+                        $wrap.text("未探测到任何图片资源（videoItem.images 为空）。");
+                        return;
+                    }
+
+                    $wrap.empty();
+                    $.each(keys, function (_, imageKey) {
+                        var base64 = videoItem.images[imageKey];
+                        if (!base64 || typeof base64 !== "string") {
+                            return;
+                        }
+                        var src = "data:image/png;base64," + base64;
+                        var $item = $('<div class="image-item"></div>');
+                        var $key = $('<div class="image-key"></div>').text(imageKey);
+                        var $thumb = $('<div class="image-thumb"><img /></div>');
+                        $thumb.find("img").attr("src", src).attr("alt", imageKey);
+                        $item.append($key).append($thumb);
+
+                        $item.on("click", function () {
+                            $("#editType").val("image");
+                            updateEditorByType();
+                            $("#slotName").val(imageKey);
+                            showTips("已选择图片插槽：" + imageKey + "（图片模式 setImage）");
+                        });
+
+                        $wrap.append($item);
+                    });
+                }
+
+                function renderSlotCandidates() {
+                    if (!state.currentVideoItem) {
+                        showTips("请先加载 SVGA");
+                        return;
+                    }
+                    var result = collectSlotCandidates(state.currentVideoItem);
+                    // 汇总所有候选 key，统一当作“插槽名”来用
+                    var allKeyMap = {};
+                    $.each(result.spriteSlots, function (_, k) {
+                        allKeyMap[k] = true;
+                    });
+                    $.each(result.imageResourceSlots, function (_, k) {
+                        allKeyMap[k] = true;
+                    });
+                    $.each(result.textSlots, function (_, k) {
+                        allKeyMap[k] = true;
+                    });
+                    var allKeys = Object.keys(allKeyMap).sort();
+
+                    var allPart =
+                        "一、所有候选插槽名（底层都是一张图，可 setText 也可 setImage）\n" +
+                        (allKeys.length ? "共 " + allKeys.length + " 个：\n  - " + allKeys.join("\n  - ") : "  - 未探测到任何插槽名");
+
+                    var detailTextPart =
+                        "二、来源说明 - 文本相关（dynamicText / texts 等，历史上常用于 setText）\n" +
+                        (result.textSlots.length
+                            ? "共 " + result.textSlots.length + " 个：\n  - " + result.textSlots.join("\n  - ")
+                            : "  - 未从 dynamicText / texts 中探测到 key");
+
+                    var detailSpritePart =
+                        "三、来源说明 - 动画时间轴 sprites（强烈推荐优先使用，imageKey / spriteName / matteKey）\n" +
+                        (result.spriteSlots.length
+                            ? "共 " + result.spriteSlots.length + " 个：\n  - " + result.spriteSlots.join("\n  - ")
+                            : "  - 未从 sprites 中探测到 key");
+
+                    var detailImagePart =
+                        "四、来源说明 - 内嵌图片资源（videoItem.images，通常也可以直接作为插槽名）\n" +
+                        (result.imageResourceSlots.length
+                            ? "共 " + result.imageResourceSlots.length + " 个：\n  - " + result.imageResourceSlots.join("\n  - ")
+                            : "  - 未从 images 中探测到任何 key");
+
+                    $("#slotCandidates").text([allPart, detailTextPart, detailSpritePart, detailImagePart].join("\n\n"));
+
+                    if (result.textSlots.length === 1) {
+                        $("#slotName").val(result.textSlots[0]);
+                    } else if (!$.trim($("#slotName").val())) {
+                        if (result.spriteSlots.indexOf("seat_number") > -1) {
+                            $("#slotName").val("seat_number");
+                        } else if (result.spriteSlots.length === 1) {
+                            $("#slotName").val(result.spriteSlots[0]);
+                        } else if (result.imageResourceSlots.length === 1) {
+                            $("#slotName").val(result.imageResourceSlots[0]);
+                        }
+                    }
+                    showTips("插槽探测完成，请看列表");
+                }
+
+                function refreshHistory() {
+                    $("#history").text(JSON.stringify(state.slotConfigMap, null, 2));
+                }
+
+                function updateEditorByType() {
+                    var editType = $("#editType").val();
+                    if (editType === "image") {
+                        $("#textEditorArea").addClass("hidden");
+                        $("#imageEditorArea").removeClass("hidden");
+                        $("#editorDesc").text("图片模式：支持图片 URL 或本地上传文件（二选一），保存后执行 setImage。");
+                        return;
+                    }
+                    $("#textEditorArea").removeClass("hidden");
+                    $("#imageEditorArea").addClass("hidden");
+                    $("#editorDesc").text("文本模式：填写 JSON 配置，保存后执行 setText。");
+                }
+
+                function createImageSourceFromInput() {
+                    var imageUrl = $.trim($("#imageUrl").val());
+                    var imageFile = $("#imageFile")[0].files[0];
+
+                    if (imageUrl) {
+                        return imageUrl;
+                    }
+                    if (imageFile) {
+                        var objUrl = URL.createObjectURL(imageFile);
+                        state.imageObjectUrls.push(objUrl);
+                        return objUrl;
+                    }
+                    showTips("图片模式请填写图片 URL 或选择本地图片");
+                    return "";
+                }
+
+                function clearImageObjectUrls() {
+                    $.each(state.imageObjectUrls, function (_, url) {
+                        try {
+                            URL.revokeObjectURL(url);
+                        } catch (e) {}
+                    });
+                    state.imageObjectUrls = [];
+                }
+
+                function rerenderWithCurrentConfig() {
+                    if (!state.currentSource) {
+                        showTips("请先加载 SVGA 再进行编辑");
+                        return;
+                    }
+                    renderSvgaFromSource(state.currentSource);
+                }
+
+                function parseConfigText(text) {
+                    var configObj;
+                    try {
+                        configObj = JSON.parse(text);
+                    } catch (err) {
+                        showTips("配置对象不是合法 JSON");
+                        return null;
+                    }
+                    if (!configObj || typeof configObj !== "object" || $.isArray(configObj)) {
+                        showTips("配置对象必须是 JSON 对象");
+                        return null;
+                    }
+                    return configObj;
+                }
+
+                function bindEvents() {
+                    $("#editType").on("change", function () {
+                        updateEditorByType();
+                    });
+
+                    $("#loadByUrl").on("click", function () {
+                        var url = $.trim($("#svgaUrl").val());
+                        if (!url) {
+                            showTips("请输入 SVGA 地址");
+                            return;
+                        }
+                        state.currentSource = url;
+                        state.currentSourceType = "url";
+                        renderSvgaFromSource(url);
+                    });
+
+                    $("#loadByFile").on("click", function () {
+                        var file = $("#svgaFile")[0].files[0];
+                        if (!file) {
+                            showTips("请先选择本地 SVGA 文件");
+                            return;
+                        }
+                        if (state.objectUrl) {
+                            URL.revokeObjectURL(state.objectUrl);
+                            state.objectUrl = "";
+                        }
+                        state.objectUrl = URL.createObjectURL(file);
+                        state.currentSource = state.objectUrl;
+                        state.currentSourceType = "file";
+                        renderSvgaFromSource(state.objectUrl);
+                    });
+
+                    $("#saveSlotConfig").on("click", function () {
+                        var editType = $("#editType").val();
+                        var slotName = $.trim($("#slotName").val());
+                        if (!slotName) {
+                            showTips("请先输入插槽名字");
+                            return;
+                        }
+
+                        if (editType === "image") {
+                            var imageSource = createImageSourceFromInput();
+                            if (!imageSource) {
+                                return;
+                            }
+                            state.slotConfigMap[slotName] = {
+                                type: "image",
+                                source: imageSource,
+                            };
+                            refreshHistory();
+                            rerenderWithCurrentConfig();
+                            return;
+                        }
+
+                        var rawText = $.trim($("#slotConfig").val());
+                        if (!rawText) {
+                            showTips("请先输入配置对象");
+                            return;
+                        }
+                        var configObj = parseConfigText(rawText);
+                        if (!configObj) {
+                            return;
+                        }
+
+                        state.slotConfigMap[slotName] = {
+                            type: "text",
+                            config: configObj,
+                        };
+                        refreshHistory();
+                        rerenderWithCurrentConfig();
+                    });
+
+                    $("#inspectSlots").on("click", function () {
+                        renderSlotCandidates();
+                    });
+
+                    $("#resetSlotConfig").on("click", function () {
+                        clearImageObjectUrls();
+                        state.slotConfigMap = {};
+                        refreshHistory();
+                        rerenderWithCurrentConfig();
+                    });
+
+                    $("#decomposeSvga").on("click", function () {
+                        if (!state.currentVideoItem) {
+                            showTips("请先加载 SVGA");
+                            return;
+                        }
+                        renderImageAssets(state.currentVideoItem);
+                        var result = collectSlotCandidates(state.currentVideoItem);
+                        if (result && result.imageResourceSlots && result.imageResourceSlots.length) {
+                            showTips("已分解 SVGA，发现 " + result.imageResourceSlots.length + " 个图片插槽 / 资源键");
+                        } else {
+                            showTips("已分解 SVGA，但未发现任何图片资源");
+                        }
+                    });
+                }
+
+                function init() {
+                    bindEvents();
+                    updateEditorByType();
+                    refreshHistory();
+                }
+
+                $(init);
+            })(jQuery);
+        </script>
+    </body>
+</html>
